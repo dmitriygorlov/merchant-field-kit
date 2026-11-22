@@ -1,0 +1,8 @@
+**
+!Dockerfile
+!requirements.txt
+!forecast_app.py
+!local_forecast/
+!local_forecast/*.py
+!.streamlit/
+!.streamlit/config.toml
