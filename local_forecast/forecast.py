@@ -1,4 +1,4 @@
-"""Daily ordered-unit forecasts with forward-only evaluation."""
+"""Daily sales forecasts with forward-only evaluation."""
 import csv
 import io
 import math
@@ -9,6 +9,8 @@ from datetime import date, timedelta
 import numpy as np
 import pandas as pd
 from prophet import Prophet
+
+from .sales import load_sales_csv, sales_history, xyz_analysis
 
 HORIZON = 28
 MIN_TRAIN = 56
@@ -72,6 +74,26 @@ def sample_csv() -> bytes:
     return output.getvalue().encode("utf-8")
 
 
+def sample_sales_csv() -> bytes:
+    """Synthetic orders for a two-target forecast and a usable XYZ example."""
+    output = io.StringIO()
+    writer = csv.writer(output, lineterminator="\n")
+    writer.writerow(["date", "sku", "units_ordered", "unit_price"])
+    for i, (day, units) in enumerate(csv.reader(sample_csv().decode().splitlines()[1:])):
+        total = int(units)
+        sporadic = total // 2 if i % 17 == 0 or i % 17 == 1 else 0
+        medium = total // 3 if i % 21 < 14 else 0
+        stable = total - sporadic - medium
+        # Split one SKU across two rows to exercise line aggregation.
+        writer.writerow([day, "CORE-01", stable // 2, "12.00"])
+        writer.writerow([day, "CORE-01", stable - stable // 2, "12.00"])
+        if medium:
+            writer.writerow([day, "SEASON-02", medium, "18.50"])
+        if sporadic:
+            writer.writerow([day, "SPOT-03", sporadic, "32.00"])
+    return output.getvalue().encode("utf-8")
+
+
 def predict(train, dates):
     y = train.y.to_numpy(dtype=float)
     model = Prophet(weekly_seasonality=True, daily_seasonality=False,
@@ -87,7 +109,10 @@ def predict(train, dates):
     }
 
 
-def run_forecast(history, predictor=predict):
+def run_forecast(history, predictor=predict, *, metric="units_ordered"):
+    if metric not in {"units_ordered", "revenue"}:
+        raise ValueError("Choose units_ordered or revenue.")
+    mae = "MAE (units/day)" if metric == "units_ordered" else "MAE (currency/day)"
     # Use the most recent 3–5 forecast origins, 14 days apart.
     n = len(history)
     if n < MIN_HISTORY:
@@ -105,12 +130,15 @@ def run_forecast(history, predictor=predict):
             errors[label].extend(err)
             folds.append({"Training through": train.ds.iloc[-1].date().isoformat(),
                           "Test through": target.ds.iloc[-1].date().isoformat(),
-                          "Method": label, "MAE (units/day)": float(err.mean())})
+                          "Method": label, mae: float(err.mean())})
     scores = {label: math.fsum(values) / len(values) for label, values in errors.items()}
     # Prefer the simpler method if scores are exactly tied up to numerical noise.
     chosen = min(scores, key=lambda label: round(scores[label], 9))
     future = pd.date_range(history.ds.iloc[-1] + pd.Timedelta(days=1), periods=HORIZON)
     estimates = predictor(history, future)
-    forecast = pd.DataFrame({"date": future.strftime("%Y-%m-%d"),
-                             "units_ordered_forecast": np.floor(estimates[chosen] + 0.5).astype(int)})
+    if metric == "units_ordered":
+        values = np.floor(estimates[chosen] + 0.5).astype(int)
+    else:
+        values = np.round(estimates[chosen], 2)
+    forecast = pd.DataFrame({"date": future.strftime("%Y-%m-%d"), f"{metric}_forecast": values})
     return chosen, scores, pd.DataFrame(folds), forecast

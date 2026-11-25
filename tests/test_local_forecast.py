@@ -64,13 +64,56 @@ def test_zero_demand_stays_zero():
 
 def test_streamlit_sample_flow():
     app = AppTest.from_file(str(Path(__file__).resolve().parents[1] / "forecast_app.py"),
-                            default_timeout=25).run()
+                            default_timeout=45).run()
     assert not app.exception
+    assert app.radio[1].value == "revenue"
+    app.radio[1].set_value("both").run()
     app.button[0].click().run()
     assert not app.exception and not app.error
-    assert app.subheader[0].value == "Forecast method: Prophet"
+    assert app.subheader[0].value.startswith("Revenue · Method:")
+    assert app.subheader[1].value.startswith("Ordered units · Method:")
+    assert app.subheader[2].value == "XYZ: sales stability by SKU"
+    assert len(app.metric) == 2
     assert app.get("download_button")[1].label == "Download forecast CSV"
-    app.radio[0].set_value("My daily totals").run()
+    for code, title in (("ru", "Спланируйте продажи на четыре недели"),
+                        ("sr", "Planirajte prodaju za naredne četiri nedelje")):
+        app.selectbox[0].set_value(code).run()
+        assert not app.exception and not app.error
+        assert app.title[0].value == title
+        assert len(app.metric) == 2
+    app.radio[0].set_value("daily").run()
     assert not app.exception
     assert app.button[0].disabled
     assert not app.metric
+
+
+def test_streamlit_order_upload_and_ambiguous_date_override():
+    app = AppTest.from_file(str(Path(__file__).resolve().parents[1] / "forecast_app.py"),
+                            default_timeout=45).run()
+    app.radio[0].set_value("orders").run()
+    fixture = Path(__file__).resolve().parents[1] / "examples" / "sample_orders.csv"
+    raw = fixture.read_bytes().replace(b"2025-01-06", b"01/06/2025")
+    app.get("file_uploader")[0].upload("order_lines.csv", raw, "text/csv").run()
+    assert not app.button[0].disabled
+    app.button[0].click().run()
+    assert app.error[0].value == "Choose day first or month first for ambiguous dates."
+    app.selectbox[1].set_value("mdy").run()
+    app.button[0].click().run()
+    assert not app.exception and not app.error
+    assert len(app.metric) == 1
+    assert app.subheader[1].value == "XYZ: sales stability by SKU"
+    assert app.get("download_button")[0].label == "Download forecast CSV"
+
+
+def test_streamlit_legacy_daily_upload_select_units():
+    app = AppTest.from_file(str(Path(__file__).resolve().parents[1] / "forecast_app.py"),
+                            default_timeout=45).run()
+    app.radio[0].set_value("daily").run()
+    app.get("file_uploader")[0].upload("daily.csv", sample_csv(), "text/csv").run()
+    app.button[0].click().run()
+    assert app.error[0].value == "This file does not contain the selected target."
+    app.radio[1].set_value("units_ordered").run()
+    app.button[0].click().run()
+    assert not app.exception and not app.error
+    assert app.subheader[0].value == "Ordered units · Method: Prophet"
+    assert len(app.subheader) == 1
