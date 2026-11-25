@@ -117,3 +117,16 @@ def test_streamlit_legacy_daily_upload_select_units():
     assert not app.exception and not app.error
     assert app.subheader[0].value == "Ordered units · Method: Prophet"
     assert len(app.subheader) == 1
+
+
+def test_streamlit_ambiguous_money_upload_never_produces_a_forecast():
+    app = AppTest.from_file(str(Path(__file__).resolve().parents[1] / "forecast_app.py"),
+                            default_timeout=45).run()
+    app.radio[0].set_value("orders").run()
+    raw = b"date;sku;units_ordered;unit_price\n2025-01-06;A;2;1,234\n"
+    app.get("file_uploader")[0].upload("order_lines.csv", raw, "text/csv").run()
+    for lang, phrase in [("en", "Line 2"), ("ru", "Строка 2"), ("sr", "Red 2")]:
+        app.selectbox[0].set_value(lang).run()
+        app.button[0].click().run()
+        assert not app.exception and not app.metric
+        assert phrase in app.error[0].value and "unit_price" in app.error[0].value

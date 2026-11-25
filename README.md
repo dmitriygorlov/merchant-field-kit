@@ -41,6 +41,8 @@ Open [localhost:8501](http://localhost:8501), try the synthetic shop first, then
 
 Use UTF-8, a file up to 1 MB, and at least **112 calendar days** for forecasting. Daily files need consecutive dates, with explicit zeros for known no-sale days. Use order-line mode only for a complete export: days without rows within its date span count as zero. No customer or order ID is required. Use one currency and a consistent revenue definition, such as item sales after discounts and before tax; don't mix currencies, sales and profit, or gross and net amounts. Normalize returns separately before import. Use store-local dates. ISO dates are safest; if a numeric date could mean either day-first or month-first, set the order explicitly.
 
+Use decimal point or decimal comma, without thousands grouping. Values such as `1,234` or `1.234` are rejected as ambiguous: write `1234.00` for 1,234, or `1.2340` if you mean a value near one.
+
 ## Read the result
 
 Prophet competes with repeating the last seven days and the last 28 days’ average. Models are tested on the same historical 28-day windows, using only data before each cutoff. Compare mean absolute error in currency/day or units/day for the chosen target. A revenue forecast is not a profit forecast; a units forecast is not a purchase order. Promotions, stockouts and changes in assortment can affect both.

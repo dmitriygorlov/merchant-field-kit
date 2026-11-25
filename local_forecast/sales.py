@@ -19,6 +19,13 @@ YEAR_FIRST = re.compile(r"(\d{4})([-/.])(\d{1,2})\2(\d{1,2})(.*)")
 SHORT_FIRST = re.compile(r"(\d{1,2})([-/.])(\d{1,2})\2(\d{4})(.*)")
 TIME = re.compile(r"(?:T| )\d{2}:\d{2}(?::\d{2}(?:\.\d{1,6})?)?(?:Z|[+-]\d{2}:?\d{2})?")
 NUMERIC = re.compile(r"[0-9]{1,9}(?:[.,][0-9]{1,4})?")
+AMBIGUOUS_MONEY = re.compile(r"[1-9][0-9]{0,2}[.,][0-9]{3}")
+
+
+class AmbiguousMoneyError(ValueError):
+    def __init__(self, line: int, field: str):
+        self.line, self.field = line, field
+        super().__init__(f"Line {line}: ambiguous {field}; remove thousands separators or write explicit decimals.")
 
 
 def _calendar(year, month, day, suffix):
@@ -67,6 +74,8 @@ def _date_options(value):
 def _money(value, line, name):
     if not NUMERIC.fullmatch(value):
         raise ValueError(f"Line {line}: {name} must be nonnegative; omit currency symbols and thousands separators.")
+    if AMBIGUOUS_MONEY.fullmatch(value):
+        raise AmbiguousMoneyError(line, name)
     return Decimal(value.replace(",", "."))
 
 

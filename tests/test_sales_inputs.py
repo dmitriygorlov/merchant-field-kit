@@ -91,3 +91,20 @@ def test_xyz_leaves_new_and_zero_skus_unclassified_and_drops_partial_weeks():
     assert labels.loc["old", "weeks"] == 8 and labels.loc["old", "xyz_class"] == "X"
     assert pd.isna(labels.loc["new", "xyz_class"])
     assert pd.isna(labels.loc["zero", "xyz_class"])
+
+
+@pytest.mark.parametrize("value", ["1,234", "1.234", "12,345", "123.456"])
+@pytest.mark.parametrize("mode,header,row", [
+    ("daily", "date;revenue", "2025-01-06;{}"),
+    ("orders", "date;sku;units_ordered;unit_price", "2025-01-06;A;2;{}"),
+])
+def test_rejects_money_with_ambiguous_separator(value, mode, header, row):
+    from local_forecast.sales import AmbiguousMoneyError
+    with pytest.raises(AmbiguousMoneyError, match="Line 2: ambiguous"):
+        load_sales_csv(f"{header}\n{row.format(value)}\n".encode(), input_kind=mode)
+
+
+@pytest.mark.parametrize("value,amount", [("1234.00", 1234), ("12,50", 12.5), ("1.2340", 1.234), ("0.125", .125)])
+def test_keeps_unambiguous_money(value, amount):
+    raw = f"date;sku;units_ordered;unit_price\n2025-01-06;A;2;{value}\n".encode()
+    assert load_sales_csv(raw, input_kind="orders").revenue.iloc[0] == pytest.approx(2 * amount)

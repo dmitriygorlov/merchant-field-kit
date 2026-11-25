@@ -22,6 +22,8 @@ Ako koristite Python 3.12, pogledajte [uputstvo za instalaciju i pokretanje](../
 
 Koristite CSV u UTF-8 formatu, veličine do 1 MB, sa najmanje **112 kalendarskih dana**. Dnevni niz ne sme imati praznine: upišite nulu samo za dane za koje znate da nije bilo prodaje. Kod stavki porudžbina dani bez redova između prvog i poslednjeg datuma računaju se kao nula, zato izvoz mora biti potpun. Nemojte mešati valute, prihod i dobit ili iznose pre i posle popusta. Obradite povraćaje pre uvoza. Koristite lokalne datume prodavnice. ISO je najsigurniji format; ako datum može da se protumači na dva načina, izaberite redosled dana i meseca.
 
+Decimalna tačka i zarez su podržani, ali ne i separatori hiljada. Zapisi `1,234` i `1.234` se odbijaju kao dvosmisleni: za 1234 unesite `1234.00`, a za vrednost blizu jedan unesite `1.2340`.
+
 ## Kako čitati rezultat
 
 Prophet se poredi sa ponavljanjem poslednjih sedam dana i prosekom poslednjih 28 dana. Pri testiranju na istorijskim periodima svaki model koristi samo podatke dostupne pre početka perioda. Greška je izražena u valuti po danu ili u komadima po danu. Prognoza prihoda nije prognoza dobiti, a procena komada nije predlog količine za nabavku. Akcije, nedostatak robe i promene asortimana mogu da utiču na obe prognoze.

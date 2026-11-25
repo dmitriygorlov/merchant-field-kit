@@ -50,6 +50,11 @@ COPY = {
         "Используйте одну валюту, без символов валюты и разделителей тысяч. Выручка здесь означает сумму из выгрузки, а не прибыль.",
         "Koristite jednu valutu, bez simbola valute i separatora hiljada. Prihod znači iznos iz vašeg izvoza, a ne profit.",
     ),
+    "ambiguous_money": (
+        "Line {line}, {field}: the separator could mean decimals or thousands. Use 1234.00 for a thousand or 1.2340 for a value near one.",
+        "Строка {line}, {field}: разделитель может означать дробную часть или тысячи. Для тысячи используйте 1234.00, для числа около единицы — 1.2340.",
+        "Red {line}, {field}: separator može da označava decimale ili hiljade. Za vrednost veću od hiljadu unesite 1234.00, a za vrednost blizu jedan unesite 1.2340.",
+    ),
     "run": ("Run forecast", "Построить прогноз", "Pokrenite prognozu"),
     "fitting": ("Comparing Prophet with simpler forecasts…", "Сравниваем Prophet с простыми прогнозами…", "Upoređujemo Prophet sa jednostavnijim prognozama…"),
     "bad_csv": ("Check the CSV and selected settings.", "Проверьте CSV и параметры загрузки.", "Proverite CSV i izabrana podešavanja."),

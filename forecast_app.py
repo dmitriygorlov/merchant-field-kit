@@ -7,6 +7,8 @@ from local_forecast.forecast import (
     load_sales_csv, run_forecast, sales_history, sample_sales_csv, xyz_analysis,
 )
 
+from local_forecast.sales import AmbiguousMoneyError
+
 st.set_page_config(page_title="Merchant Field Kit", page_icon="📦")
 lang = st.selectbox("Language / Язык / Jezik", list(LANGUAGES), format_func=LANGUAGES.get, key="language")
 locale = list(LANGUAGES).index(lang)
@@ -47,6 +49,8 @@ if st.button(t("run"), type="primary", disabled=raw is None, key="run"):
         with st.spinner(t("fitting")):
             runs = {metric: run_forecast(history, metric=metric) for metric, history in histories.items()}
         st.session_state["forecast_result"] = (signature, histories, runs, xyz_analysis(data))
+    except AmbiguousMoneyError as error:
+        st.error(t("ambiguous_money").format(line=error.line, field=error.field))
     except ValueError as error:
         if str(error).startswith("Ambiguous dates"):
             st.error(t("ambiguous"))
